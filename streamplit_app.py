@@ -12,7 +12,6 @@ from dataclasses import dataclass, field
 from typing import List, Dict
 
 import streamlit as st
-from st_aggrid import AgGrid
 import textwrap
 
 # Optional: matplotlib for simple interactive demos
@@ -424,3 +423,4 @@ notes_md = f"""
 st.download_button("⬇️ Download notes (Markdown)", data=notes_md, file_name=f"{sel_topic.key}_notes.md", mime="text/markdown")
 
 st.caption("Built with ❤️ to make AI learning engaging, accurate, and fun. Add more topics by extending TOPICS and QUIZZES.")
+
