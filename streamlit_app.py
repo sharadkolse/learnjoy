@@ -7,7 +7,6 @@
 #   streamlit run streamlit_app.py
 # -----------------------------------------------------
 
-import math
 from dataclasses import dataclass, field
 from typing import List, Dict
 
@@ -42,6 +41,7 @@ class Topic:
     analogies: List[str]
     code_snippet: str
     diagram_graphviz: str
+    use_case: str
     citations: List[str] = field(default_factory=list)
 
 
@@ -49,7 +49,7 @@ TOPICS: Dict[str, Topic] = {}
 QUIZZES: Dict[str, List[QuizQ]] = {}
 
 # -----------------------------
-# Topic Seeds (3 examples to start)
+# Topic Seeds (5 examples to start)
 # -----------------------------
 TOPICS["gradient_descent"] = Topic(
     key="gradient_descent",
@@ -112,6 +112,7 @@ TOPICS["gradient_descent"] = Topic(
         }
         """
     ),
+    use_case="Training models such as linear regression by minimizing loss functions.",
     citations=[
         "Goodfellow, Bengio, Courville — Deep Learning (2016), Ch. 4",
         "Nocedal & Wright — Numerical Optimization (2e)"
@@ -187,6 +188,7 @@ TOPICS["dropout"] = Topic(
         }
         """
     ),
+    use_case="Regularizing deep networks to improve generalization in tasks like image classification.",
     citations=[
         "Srivastava et al. — Dropout: A Simple Way to Prevent Neural Networks from Overfitting (JMLR, 2014)"
     ],
@@ -250,6 +252,7 @@ TOPICS["transformer"] = Topic(
         }
         """
     ),
+    use_case="Powering modern NLP tasks like translation and large language models.",
     citations=[
         "Vaswani et al. — Attention Is All You Need (NeurIPS, 2017)",
         "Press et al. — Train Short, Test Long (2021)"
@@ -264,6 +267,84 @@ QUIZZES["transformer"] = [
         explanation="Scaling prevents large dot products from saturating softmax, improving stability.",
     ),
 ]
+
+TOPICS["cnn"] = Topic(
+    key="cnn",
+    title="Convolutional Neural Networks",
+    tags=["DL", "Core"],
+    tl_dr="Use convolutional layers to detect local patterns and build vision systems.",
+    eli5="Slide small windows over an image to spot features like edges.",
+    intuition="Filters capture local patterns that deeper layers combine into higher-level concepts.",
+    formal="A convolution applies learnable kernels over local regions; pooling reduces spatial size while preserving features.",
+    analogies=[
+        "Scanning a photo with a magnifying glass.",
+        "Cookie cutter detecting shapes in dough.",
+    ],
+    code_snippet=textwrap.dedent(
+        """
+# Simple 2D convolution using PyTorch
+import torch
+import torch.nn as nn
+layer = nn.Conv2d(1, 4, 3)
+x = torch.randn(1, 1, 28, 28)
+y = layer(x)
+print(y.shape)
+"""
+    ),
+    diagram_graphviz=textwrap.dedent(
+        """
+digraph CNN {
+  rankdir=LR;
+  node [shape=record];
+  Input -> "Conv -> ReLU -> Pool" -> Output;
+}
+"""
+    ),
+    use_case="Image classification tasks such as recognizing handwritten digits.",
+    citations=[
+        "LeCun et al. — Gradient-based learning applied to document recognition (1998)",
+    ],
+)
+
+TOPICS["rnn"] = Topic(
+    key="rnn",
+    title="Recurrent Neural Networks",
+    tags=["DL", "Core"],
+    tl_dr="Maintain a hidden state to process sequences token by token.",
+    eli5="Remember what came before to predict what comes next.",
+    intuition="Each step updates a state vector using current input and previous state, allowing information to persist.",
+    formal="h_t = f(W_x x_t + W_h h_{t-1}); outputs depend on the current hidden state.",
+    analogies=[
+        "Storytelling where each sentence builds on the previous one.",
+        "Assembly line passing context down the line.",
+    ],
+    code_snippet=textwrap.dedent(
+        """
+# Simple RNN cell in PyTorch
+import torch
+import torch.nn as nn
+cell = nn.RNNCell(10, 20)
+h = torch.zeros(1, 20)
+for x in torch.randn(5, 1, 10):
+    h = cell(x, h)
+print(h.shape)
+"""
+    ),
+    diagram_graphviz=textwrap.dedent(
+        """
+digraph RNN {
+  rankdir=LR;
+  node [shape=box];
+  "h_{t-1}" -> RNN -> "h_t";
+  x_t -> RNN;
+}
+"""
+    ),
+    use_case="Sequence modelling like predicting the next word in a sentence.",
+    citations=[
+        "Rumelhart et al. — Learning representations by back-propagating errors (1986)",
+    ],
+)
 
 # -----------------------------
 # Helpers
@@ -304,9 +385,6 @@ sel_key = st.sidebar.selectbox(
     format_func=lambda k: TOPICS[k].title,
 )
 
-st.sidebar.markdown("---")
-st.sidebar.write("**Download notes** for your selected topic as Markdown.")
-
 # -----------------------------
 # UI — Main
 # -----------------------------
@@ -320,8 +398,8 @@ st.write(" ".join([tag_pill(t) for t in sel_topic.tags]))
 st.info(sel_topic.tl_dr)
 
 # Tabs
-about_tab, eli5_tab, intuition_tab, formal_tab, diagram_tab, code_tab, quiz_tab, cite_tab = st.tabs([
-    "About", "ELI5", "Intuition", "Formal", "Diagram", "Code Demo", "Quiz", "Citations"
+about_tab, eli5_tab, intuition_tab, formal_tab, diagram_tab, code_tab, use_case_tab, quiz_tab, cite_tab = st.tabs([
+    "About", "ELI5", "Intuition", "Formal", "Diagram", "Code Demo", "Use Case", "Quiz", "Citations"
 ])
 
 with about_tab:
@@ -377,6 +455,9 @@ with code_tab:
         plt.ylabel("f(x)")
         st.pyplot(fig)
 
+with use_case_tab:
+    st.write(sel_topic.use_case)
+
 with quiz_tab:
     qs = QUIZZES.get(sel_topic.key, [])
     if not qs:
@@ -396,31 +477,5 @@ with quiz_tab:
 with cite_tab:
     for c in sel_topic.citations:
         st.markdown(f"- {c}")
-
-# -----------------------------
-# Notes download
-# -----------------------------
-notes_md = f"""
-# {sel_topic.title}
-
-**Tags:** {', '.join(sel_topic.tags)}
-
-**TL;DR**  
-{sel_topic.tl_dr}
-
-## ELI5
-{sel_topic.eli5}
-
-## Intuition
-{sel_topic.intuition}
-
-## Formal
-{sel_topic.formal}
-
-## Analogies
-- """ + "\n- ".join(sel_topic.analogies) + "\n\n## Citations\n- " + "\n- ".join(sel_topic.citations) + "\n"
-
-st.download_button("⬇️ Download notes (Markdown)", data=notes_md, file_name=f"{sel_topic.key}_notes.md", mime="text/markdown")
-
 st.caption("Built with ❤️ to make AI learning engaging, accurate, and fun. Add more topics by extending TOPICS and QUIZZES.")
 
